@@ -43,3 +43,4 @@ jobs:
           cd turnilo
           export TAG=$(git describe HEAD | sed 's/-.*$//g')
           docker buildx build --platform ${PLATFORMS} --push -f Dockerfile . --tag ghcr.io/${GITHUB_REPOSITORY}:${TAG}
+          docker buildx build --platform ${PLATFORMS} --push -f Dockerfile.bookworm . --tag ghcr.io/${GITHUB_REPOSITORY}:${TAG}-bookworm
