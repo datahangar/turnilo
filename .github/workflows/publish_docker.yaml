@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 env:
-  PLATFORMS: linux/amd64,linux/arm64,linux/arm64/v8
+  PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   docker_build_and_publish:
@@ -39,8 +39,20 @@ jobs:
 
       - name: "Build and push to ghcr"
         run: |
-          #Cross-build
           cd turnilo
-          export TAG=$(git describe HEAD | sed 's/-.*$//g')
-          docker buildx build --platform ${PLATFORMS} --push -f Dockerfile . --tag ghcr.io/${GITHUB_REPOSITORY}:${TAG}
-          docker buildx build --platform ${PLATFORMS} --push -f Dockerfile.bookworm . --tag ghcr.io/${GITHUB_REPOSITORY}:${TAG}-bookworm
+
+          echo "Fix mess with tags in actions/checkout..."
+          git fetch -f && git fetch -f --tags
+
+          export TAG=$(git describe HEAD | sed 's/-.*$//g' | tr -d "v")
+          export EXACT_TAG=$(git describe --exact-match --match "v*" || echo "")
+
+          if [[ "${EXACT_TAG}" != "" ]]; then
+            echo "Cross-building and PUSHING!"
+            docker buildx build --platform ${PLATFORMS} --push -f Dockerfile . --tag ghcr.io/${GITHUB_REPOSITORY}:${TAG}
+            docker buildx build --platform ${PLATFORMS} --push -f Dockerfile.bookworm . --tag ghcr.io/${GITHUB_REPOSITORY}:${TAG}-bookworm
+          else
+            echo "Cross-building ONLY"
+            docker buildx build --platform ${PLATFORMS} -f Dockerfile .
+            docker buildx build --platform ${PLATFORMS} -f Dockerfile.bookworm .
+          fi
